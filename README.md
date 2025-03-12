@@ -1,4 +1,4 @@
-# pikeville-crashes
+# Campbell County Crashes
 
 Repository for visualizing crash data in Campbell County, KY from 2020 to 2024.
 
