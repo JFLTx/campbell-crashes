@@ -83,6 +83,17 @@
     "Motor Vehicles": ["Motor Vehicles"],
   };
 
+  // road type mapping for filtering road data
+  const roadTypes = {
+    CITY: "City Roads",
+    CNTY: "County Roads",
+    I: "Interstate",
+    KY: "State Route",
+    US: "US Route",
+    PRIV: "Private Drive",
+    OTHR: "Other Route",
+  };
+
   // Time groups for slider
   const timeGroups = [
     { label: "All Crashes", range: [0, 2359] },
@@ -103,6 +114,7 @@
   const modeDropdown = document.getElementById("mode-filter");
   const slider = document.getElementById("slider-controls");
   const sliderLabel = document.getElementById("slider-label");
+  const roadFilter = document.getElementById("road-filter");
 
   // Populate the collision dropdown
   Object.entries(mannerOfCollisionMapping).forEach(([key, value]) => {
@@ -110,6 +122,14 @@
     option.value = key;
     option.textContent = value;
     dropdown.appendChild(option);
+  });
+
+  // populate road type dropdown using roadFilter element
+  Object.entries(roadTypes).forEach(([key, value]) => {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = value;
+    roadFilter.appendChild(option);
   });
 
   // ------------------------------
@@ -232,16 +252,15 @@
     showSpinner();
 
     // Load crash CSV and various GeoJSON files using await
-    const [crashData, county] = await Promise.all([
+    const [crashData, county, roads] = await Promise.all([
       d3.csv("data/crash-data-2020-2024.csv"),
       d3.json("data/campbell-co.geojson"),
+      d3.json("data/campbell-roads.geojson"),
     ]);
 
-    // Filter crash data
-    // const filteredData = crashData.filter(
-    //   (row) => row.ParkingLotIndicator !== "Y" && row.CityCrash == 1
-    // );
     const filteredData = crashData;
+
+    const roadsData = roads;
 
     // Initialize crashLayers and layersLabels for crash severities
     const crashLayers = {};
@@ -450,6 +469,31 @@
       currentFilteredData = filtered;
       renderCrashes(currentFilteredData, crashLayers);
       updateCrashLegend();
+    });
+
+    // declare roadLayer as an empty variable
+    let roadLayer = null;
+
+    roadFilter.addEventListener("change", (e) => {
+      const selectedType = e.target.value;
+
+      // Remove the previous roadLayer if it exists on the map
+      if (roadLayer !== null && map.hasLayer(roadLayer)) {
+        map.removeLayer(roadLayer);
+      }
+
+      // Only add a new road layer if a type is selected.
+      if (selectedType) {
+        roadLayer = L.geoJSON(roadsData, {
+          filter: function (feature) {
+            return feature.properties.ROUTE_TYPE === selectedType;
+          },
+          style: function (feature) {
+            return { color: "#00FFFF", weight: 4, pane: "middle" };
+          },
+        });
+        roadLayer.addTo(map);
+      }
     });
 
     // Call updateCrashLegend once after initial load.
