@@ -84,7 +84,7 @@
   };
 
   // road type mapping for filtering road data
-  const roadTypes = {
+  const routeTypes = {
     CITY: "City Roads",
     CNTY: "County Roads",
     I: "Interstate",
@@ -125,12 +125,12 @@
   });
 
   // populate road type dropdown using roadFilter element
-  Object.entries(roadTypes).forEach(([key, value]) => {
-    const option = document.createElement("option");
-    option.value = key;
-    option.textContent = value;
-    roadFilter.appendChild(option);
-  });
+  // Object.entries(routeTypes).forEach(([key, value]) => {
+  //   const option = document.createElement("option");
+  //   option.value = key;
+  //   option.textContent = value;
+  //   roadFilter.appendChild(option);
+  // });
 
   // ------------------------------
   // Map Initialization
@@ -258,9 +258,31 @@
       d3.json("data/campbell-roads.geojson"),
     ]);
 
-    const filteredData = crashData;
+    // filter out interstate crashes
+    const filteredData = crashData.filter(
+      (row) => row.RdwyType !== "Interstate"
+    );
+
+    // const filteredData = crashData;
 
     const roadsData = roads;
+
+    // Create a Set to store unique ROUTE_TYPE values from the GeoJSON
+    const uniqueRouteTypes = new Set();
+    roadsData.features.forEach((feature) => {
+      const routeType = feature.properties && feature.properties.ROUTE_TYPE;
+      if (routeType) {
+        uniqueRouteTypes.add(routeType);
+      }
+    });
+
+    // populate the dropdown with the unique route types
+    uniqueRouteTypes.forEach((type) => {
+      const option = document.createElement("option");
+      option.value = type;
+      option.textContent = routeTypes[type] || type;
+      roadFilter.appendChild(option);
+    });
 
     // Initialize crashLayers and layersLabels for crash severities
     const crashLayers = {};
@@ -489,7 +511,12 @@
             return feature.properties.ROUTE_TYPE === selectedType;
           },
           style: function (feature) {
-            return { color: "#00FFFF", weight: 4, pane: "middle" };
+            return {
+              color: "#00FFFF",
+              weight: 4,
+              opacity: 0.75,
+              pane: "middle",
+            };
           },
         });
         roadLayer.addTo(map);
